@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="ui_joystick_hor_margin">15dp</dimen>
+    <dimen name="ui_joystick_bottom_margin">15dp</dimen>
+
+    <!-- 整个控制盘的宽度 -->
+    <dimen name="ui_joystick_whole_field_dimen">180dp</dimen>
+
+    <!-- 背景圆到view边界的距离 -->
+    <dimen name="ui_joystick_circle_bg_gap">20dp</dimen>
+
+</resources>
