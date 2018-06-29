@@ -6,6 +6,8 @@ import android.widget.RelativeLayout;
 
 import com.rustfisher.uijoystick.R;
 import com.rustfisher.uijoystick.listener.JoystickTouchViewListener;
+import com.rustfisher.uijoystick.model.PadLocationType;
+import com.rustfisher.uijoystick.model.PadStyle;
 import com.rustfisher.uijoystick.model.TouchViewModel;
 import com.rustfisher.uijoystick.view.TouchView;
 
@@ -15,6 +17,7 @@ import com.rustfisher.uijoystick.view.TouchView;
 public class DefaultController implements IJoystickController {
     private Context ctx;
     private RelativeLayout containerView;
+    private PadStyle padStyle = PadStyle.FIXED;
 
     private TouchView leftControlTouchView;
     private TouchView rightControlTouchView;
@@ -24,8 +27,13 @@ public class DefaultController implements IJoystickController {
      * @param containerView 父view
      */
     public DefaultController(Context context, RelativeLayout containerView) {
+        this(context, containerView, PadStyle.FIXED);
+    }
+
+    public DefaultController(Context context, RelativeLayout containerView, PadStyle padStyle) {
         this.ctx = context;
         this.containerView = containerView;
+        this.padStyle = padStyle;
     }
 
     @Override
@@ -49,45 +57,52 @@ public class DefaultController implements IJoystickController {
     private void createLeftControlTouchView() {
         TouchViewModel model = new TouchViewModel(
                 R.drawable.ui_pic_joystick_left_pad,
-                R.drawable.ui_pic_joystick_control_ball,
-                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_dimen) / 2.0f
-        );
-        int gapPx = ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_circle_bg_gap);
-        model.setCircleBgGapPx(gapPx);
+                R.drawable.ui_pic_joystick_control_ball);
+        model.setWholeViewSize(ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_wid),
+                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_height));
+        model.setPadSize(ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_pad_size),
+                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_pad_size));
+        int roundBgRadius = ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_round_bg_radius);
+        model.setContentSize(roundBgRadius, (int) (roundBgRadius / 3.5));
+        model.setStyle(padStyle, PadLocationType.LEFT_BOT);
+        model.setRoundBgPadding(ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_circle_bg_padding));
+
         leftControlTouchView = new TouchView(ctx);
         leftControlTouchView.init(model);
 
+        // View的总大小
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
-                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_dimen),
-                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_dimen)
+                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_wid),
+                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_height)
         );
         params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
         params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-        params.leftMargin = ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_hor_margin);
-        params.bottomMargin = ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_bottom_margin);
         leftControlTouchView.setLayoutParams(params);
     }
 
     private void createRightControlTouchView() {
         TouchViewModel model = new TouchViewModel(
                 R.drawable.ui_pic_joystick_right_pad,
-                R.drawable.ui_pic_joystick_control_ball,
-                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_dimen) / 2.0f
-        );
+                R.drawable.ui_pic_joystick_control_ball);
+        model.setWholeViewSize(ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_wid),
+                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_height));
+        model.setPadSize(ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_pad_size),
+                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_pad_size));
+        int roundBgRadius = ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_round_bg_radius);
+        model.setContentSize(roundBgRadius, (int) (roundBgRadius / 3.5));
         model.setDirectionPicResId(R.drawable.ui_pic_joystick_arrow);
-        int gapPx = ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_circle_bg_gap);
-        model.setCircleBgGapPx(gapPx);
+        model.setStyle(padStyle, PadLocationType.RIGHT_BOT);
+
+        model.setRoundBgPadding(ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_circle_bg_padding));
         rightControlTouchView = new TouchView(ctx);
         rightControlTouchView.init(model);
 
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
-                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_dimen),
-                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_dimen)
+                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_wid),
+                ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_whole_field_height)
         );
         params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
         params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-        params.rightMargin = ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_hor_margin);
-        params.bottomMargin = ctx.getResources().getDimensionPixelSize(R.dimen.ui_joystick_bottom_margin);
         rightControlTouchView.setLayoutParams(params);
 
     }
@@ -105,5 +120,15 @@ public class DefaultController implements IJoystickController {
         if (null != rightControlTouchView) {
             rightControlTouchView.setListener(rightTouchViewListener);
         }
+    }
+
+    public void setPadStyle(PadStyle padStyle) {
+        this.padStyle = padStyle;
+        leftControlTouchView.setPadStyle(padStyle);
+        rightControlTouchView.setPadStyle(padStyle);
+    }
+
+    public PadStyle getPadStyle() {
+        return padStyle;
     }
 }

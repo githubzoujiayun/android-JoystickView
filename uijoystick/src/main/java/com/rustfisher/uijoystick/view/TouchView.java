@@ -17,6 +17,8 @@ import android.view.View;
 
 import com.rustfisher.uijoystick.business.RoundCalculator;
 import com.rustfisher.uijoystick.listener.JoystickTouchViewListener;
+import com.rustfisher.uijoystick.model.PadLocationType;
+import com.rustfisher.uijoystick.model.PadStyle;
 import com.rustfisher.uijoystick.model.TouchViewModel;
 
 /**
@@ -26,18 +28,24 @@ import com.rustfisher.uijoystick.model.TouchViewModel;
  * 圆盘外围绕着一个箭头
  */
 public class TouchView extends View {
-    private static final String TAG = "TouchView";
+    private static final String TAG = "rustAppTouchView";
 
     private Bitmap bgBmp;        // 视图背景图片  假设是一个圆盘
     private Bitmap touchBmp;     // 视图中间的随手指移动的图片  假设是一个圆球
-    private Bitmap directionBmp; // 指示方向的图片  假设是一个箭头  整体是一个正方形的图片
-    private Paint viewRectPaint; // 用来画定宽高的透明背景
+    private Bitmap mDirectionBmp;// 指示方向的图片  假设是一个箭头  整体是一个正方形的图片
     private boolean shouldShowDirectionBmp; // 是否显示方向指示图片
+    private PadStyle mPadStyle = PadStyle.FIXED; // 默认为固定位置的
+    private PadLocationType mPadLocationType = PadLocationType.LEFT_BOT;
 
     private JoystickTouchViewListener jListener;
 
-    private float circleBgGapPx = 20;// 背景圆到view边界的像素
-    protected float wholeViewRadius; // 整个view的半径
+    private float mRoundBgPadding = 20;// 背景圆到view边界的像素
+    protected float mWholeViewWid;
+    protected float mWholeViewHeight;// 整个View的高
+    private float mWholePadWid;    // 盘的宽度，包括箭头；并不是View的总宽度
+    private float mWholePadHeight; // 盘的高度，包括箭头；并不是View的总宽度
+
+    private int mRoundBgRadius;
 
     protected float touchImageX;
     protected float touchImageY;
@@ -49,6 +57,9 @@ public class TouchView extends View {
 
     private ValueAnimator valueAnimatorResetX;
     private ValueAnimator valueAnimatorResetY;
+
+    private float mContentCenterX; // 控制盘中心点x坐标
+    private float mContentCenterY; // 控制盘中心点y坐标
 
     public TouchView(Context context) {
         super(context);
@@ -69,61 +80,71 @@ public class TouchView extends View {
 
     /**
      * 初始化
-     *
-     * @param model 获取指定的图片资源
+     * 控制盘整体宽高
+     * 触摸球的半径
      */
     public void init(TouchViewModel model) {
+        mPadStyle = model.getPadStyle();
+        mPadLocationType = model.getPadLocationType();
         Bitmap tmpBgBmp = BitmapFactory.decodeResource(getResources(), model.getBgResId());
         Bitmap tmpTouchBmp = BitmapFactory.decodeResource(getResources(), model.getTouchBmpResId());
-        this.circleBgGapPx = model.getCircleBgGapPx();
-        this.wholeViewRadius = model.getWholeViewRadius();
-        isMoving = false;
+        this.mRoundBgPadding = model.getRoundBgPadding();
 
-        float scaleBg = (wholeViewRadius * 2.0f) / tmpBgBmp.getWidth(); // 要放大的倍数
+        mWholeViewHeight = model.getWholeViewHeight();
+        mWholeViewWid = model.getWholeViewWid();
+        mWholePadWid = model.getWholePadWid();
+        mWholePadHeight = model.getWholePadHeight();
+        mRoundBgRadius = model.getRoundBgRadius();
+
+        isMoving = false;
 
         shouldShowDirectionBmp = model.isShowDirectionPic();
         if (shouldShowDirectionBmp) {
             Bitmap tmpDirectionBmp = BitmapFactory.decodeResource(getResources(), model.getDirectionPicResId());
-            float dScale = (wholeViewRadius * 2.0f) / tmpDirectionBmp.getWidth(); // 缩放到最大
-            directionBmp = Bitmap.createScaledBitmap(tmpDirectionBmp,
-                    (int) (tmpDirectionBmp.getWidth() * dScale + 0.5),
-                    (int) (tmpDirectionBmp.getHeight() * dScale + 0.5),
-                    true);
+            mDirectionBmp = Bitmap.createScaledBitmap(tmpDirectionBmp,
+                    (int) mWholePadWid, (int) mWholePadHeight, true);
         }
 
-        bgBmp = Bitmap.createScaledBitmap(tmpBgBmp,
-                (int) (tmpBgBmp.getWidth() * scaleBg + 0.5 - 2 * circleBgGapPx),
-                (int) (tmpBgBmp.getHeight() * scaleBg + 0.5 - 2 * circleBgGapPx),
-                true);
+        bgBmp = Bitmap.createScaledBitmap(tmpBgBmp, (int) (mRoundBgRadius - mRoundBgPadding) * 2, (int) (mRoundBgRadius - mRoundBgPadding) * 2, true);
         touchBmp = Bitmap.createScaledBitmap(tmpTouchBmp,
-                (int) (tmpTouchBmp.getWidth() * scaleBg + 0.5 - circleBgGapPx),
-                (int) (tmpTouchBmp.getHeight() * scaleBg + 0.5 - circleBgGapPx),
-                true);
+                model.getTouchBallRadius() * 2, model.getTouchBallRadius() * 2, true);
 
-        touchBmpDefaultX = wholeViewRadius - touchBmp.getWidth() / 2;
-        touchBmpDefaultY = wholeViewRadius - touchBmp.getWidth() / 2;
-
+        setupContentCenter();
+        touchBmpDefaultX = mContentCenterX - touchBmp.getWidth() / 2;
+        touchBmpDefaultY = mContentCenterY - touchBmp.getWidth() / 2;
         touchImageX = touchBmpDefaultX;
         touchImageY = touchBmpDefaultY;
-        viewRectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        viewRectPaint.setColor(Color.TRANSPARENT);
+    }
+
+    // 设定初始位置
+    private void setupContentCenter() {
+        switch (mPadLocationType) {
+            case LEFT_BOT:
+                mContentCenterX = mWholePadWid / 2;
+                mContentCenterY = mWholeViewHeight - mWholePadHeight / 2;
+                break;
+            case RIGHT_BOT:
+                mContentCenterX = mWholeViewWid - mWholePadWid / 2;
+                mContentCenterY = mWholeViewHeight - mWholePadHeight / 2;
+                break;
+        }
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         if (bgBmp != null && getWidth() > 0) {
+            // 画透明边框以确定Pad的大小
+//            canvas.drawRect(0, 0, mWholeViewWid, mWholeViewHeight, viewRectPaint);
 
-            // 画透明边框以确定view的大小
-            canvas.drawRect(0, 0, wholeViewRadius * 2, wholeViewRadius * 2, viewRectPaint);
-
-            // 画背景
-            canvas.drawBitmap(bgBmp, circleBgGapPx, circleBgGapPx, null);
+            // 画背景圆
+            canvas.drawBitmap(bgBmp, mContentCenterX - bgBmp.getWidth() / 2,
+                    mContentCenterY - bgBmp.getHeight() / 2, null);
 
             if (shouldShowDirectionBmp && touchBmpDefaultX != touchImageX && touchBmpDefaultY != touchImageY) {
                 // 画方向指示箭头
-                float rotationDegree = (float) RoundCalculator.calTwoPointAngleDegree(wholeViewRadius, wholeViewRadius,
+                float rotationDegree = (float) RoundCalculator.calTwoPointAngleDegree(mContentCenterX, mContentCenterY,
                         touchImageX + touchBmp.getWidth() / 2, touchImageY + touchBmp.getWidth() / 2);
-                drawRotateBitmap(canvas, directionBmp, 180 - rotationDegree, 0, 0);
+                drawRotateBitmap(canvas, mDirectionBmp, 180 - rotationDegree, mContentCenterX - mWholePadWid / 2, mContentCenterY - mWholePadHeight / 2);
             }
 
             // 画中心控制圆圈
@@ -138,15 +159,37 @@ public class TouchView extends View {
         }
         if (event.getAction() == MotionEvent.ACTION_UP) {
             isMoving = false;
+            setupContentCenter();
             reset();
             if (null != jListener) {
                 jListener.onActionUp();
             }
         } else if (event.getAction() == MotionEvent.ACTION_DOWN) {
-            isMoving = true;  // 直接移动圆球到点击位置
-            userMoving(event);
-            if (null != jListener) {
-                jListener.onActionDown();
+            switch (mPadStyle) {
+                case FLOATING:
+                    if (event.getX() > mWholeViewWid / 2 + mWholePadWid / 2) {
+                        return false; // 为了让pad移动后显示完整  保证它在合适的范围里
+                    } else if (event.getY() < mWholePadHeight / 2) {
+                        return false;
+                    }
+                    // 根据点击位置重置控制盘中心位置
+                    mContentCenterX = event.getX();
+                    mContentCenterY = event.getY();
+                    isMoving = true;
+                    userMoving(event);
+                    break;
+                case FIXED:
+                    if (event.getX() < mContentCenterX - mWholePadWid / 2 || event.getX() > mContentCenterX + mWholePadWid / 2) {
+                        return false; // 点击在圆盘外面的不处理
+                    } else if (event.getY() < mContentCenterY - mWholePadHeight / 2 || event.getY() > mContentCenterY + mWholePadHeight / 2) {
+                        return false;
+                    }
+                    isMoving = true;  // 直接移动圆球到点击位置
+                    userMoving(event);
+                    if (null != jListener) {
+                        jListener.onActionDown();
+                    }
+                    break;
             }
         } else if (isMoving) {
             userMoving(event);
@@ -160,29 +203,34 @@ public class TouchView extends View {
             valueAnimatorResetY.removeAllUpdateListeners();
         }
 
-        float tr = (float) RoundCalculator.calTwoPointDistant(wholeViewRadius, wholeViewRadius, event.getX(), event.getY());
-        if (tr <= (wholeViewRadius - circleBgGapPx - touchBmp.getWidth() / 2)) {
+        float tr = (float) RoundCalculator.calTwoPointDistant(mContentCenterX, mContentCenterY, event.getX(), event.getY());
+        double insideBgDis = (bgBmp.getWidth() - touchBmp.getWidth()) / 2;
+        if (tr <= insideBgDis) {
             // 点击在背景圆圈内
             onBallMove(event.getX(), event.getY());
         } else {
             // 点击后拖出了边界  计算出拖动圆的圆心坐标
             double dotCenterOnShow[] = RoundCalculator.calPointLocationByAngle(
-                    wholeViewRadius, wholeViewRadius, event.getX(), event.getY(), (wholeViewRadius - circleBgGapPx - touchBmp.getWidth() / 2));
+                    mContentCenterX, mContentCenterY, event.getX(), event.getY(), insideBgDis);
             onBallMove((float) dotCenterOnShow[0], (float) dotCenterOnShow[1]);
         }
     }
 
-    protected void onBallMove(float touchPointX, float touchPointY) {
-        touchImageX = touchPointX - touchBmp.getWidth() / 2;
-        touchImageY = touchPointY - touchBmp.getWidth() / 2;
+    protected void onBallMove(float ballCenterX, float ballCenterY) {
+        touchImageX = ballCenterX - touchBmp.getWidth() / 2;
+        touchImageY = ballCenterY - touchBmp.getHeight() / 2;
 
         invalidate();
 
         if (jListener != null) {
-            float horizontalPercent = (touchPointX - wholeViewRadius) / (wholeViewRadius - circleBgGapPx - touchBmp.getWidth() / 2.0f);
-            float verticalPercent = (wholeViewRadius - touchPointY) / (wholeViewRadius - circleBgGapPx - touchBmp.getWidth() / 2.0f);
+            float horizontalPercent = (ballCenterX - mContentCenterX) / (bgBmp.getWidth() - touchBmp.getWidth()) * 2.0f;
+            float verticalPercent = (mContentCenterY - ballCenterY) / (bgBmp.getHeight() - touchBmp.getHeight()) * 2.0f;
             jListener.onTouch(horizontalPercent, verticalPercent);
         }
+    }
+
+    public void setPadStyle(PadStyle mPadStyle) {
+        this.mPadStyle = mPadStyle;
     }
 
     protected void reset() {

@@ -5,6 +5,7 @@ import android.os.Bundle;
 
 import com.rustfisher.joystickdemo.R;
 import com.rustfisher.joystickdemo.fragment.JoystickStyleOneFragment;
+import com.rustfisher.joystickdemo.fragment.JoystickStyleTwoFragment;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -16,6 +17,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.act_main);
         mJoystickStyleOneFragment = new JoystickStyleOneFragment();
         getSupportFragmentManager().beginTransaction()
-                .add(R.id.container, mJoystickStyleOneFragment).commit();
+                .add(R.id.container, new JoystickStyleTwoFragment())
+                .add(R.id.container, mJoystickStyleOneFragment)
+                .commit();
     }
 }

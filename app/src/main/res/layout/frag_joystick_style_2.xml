@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#222"
+    android:background="#111111"
     android:orientation="vertical">
 
     <RelativeLayout
@@ -11,17 +11,11 @@
         android:layout_height="match_parent">
 
         <TextView
-            android:id="@+id/mode_tv"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
-            android:layout_marginTop="4dp"
-            android:background="@drawable/shape_tv"
             android:gravity="center"
-            android:minWidth="170dp"
-            android:padding="8dp"
-            android:text="当前模式"
-            android:textColor="#ffffff" />
+            android:text="跟随模式 Floating Mode"
+            android:textColor="#fff" />
 
     </RelativeLayout>
 
